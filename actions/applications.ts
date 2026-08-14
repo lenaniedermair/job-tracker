@@ -1,0 +1,116 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
+import { ApplicationStatus } from "@prisma/client";
+
+// MOCK USER ID - Später durch auth() von Clerk/NextAuth ersetzen
+const DEMO_USER_ID = "user_demo_123";
+
+/**
+ * Holt alle Bewerbungen des Nutzers inkl. Relations
+ */
+export async function getApplications() {
+  try {
+    const applications = await prisma.application.findMany({
+      where: { userId: DEMO_USER_ID },
+      include: {
+        events: { orderBy: { eventDate: "asc" } },
+        documents: { orderBy: { uploadedAt: "desc" } },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+    return { success: true, data: applications };
+  } catch (error) {
+    console.error("Failed to fetch applications:", error);
+    return { success: false, error: "Fehler beim Laden der Bewerbungen." };
+  }
+}
+
+/**
+ * Status-Update für Drag-and-Drop im Kanban Board
+ */
+export async function updateApplicationStatus(
+  id: string,
+  newStatus: ApplicationStatus
+) {
+  try {
+    const updated = await prisma.application.update({
+      where: { id },
+      data: { status: newStatus },
+    });
+
+    revalidatePath("/kanban");
+    revalidatePath("/");
+    return { success: true, data: updated };
+  } catch (error) {
+    console.error("Failed to update status:", error);
+    return { success: false, error: "Status konnte nicht aktualisiert werden." };
+  }
+}
+
+/**
+ * Neue Bewerbung anlegen
+ */
+export async function createApplication(formData: {
+  company: string;
+  position: string;
+  location?: string;
+  jobUrl?: string;
+  salary?: string;
+  status?: ApplicationStatus;
+  notes?: string;
+}) {
+  try {
+    // Falls User noch nicht existiert (Demo-Setup Fallback)
+    await prisma.user.upsert({
+      where: { id: DEMO_USER_ID },
+      update: {},
+      create: {
+        id: DEMO_USER_ID,
+        email: "demo@jobtracker.dev",
+        name: "Demo Candidate",
+      },
+    });
+
+    const newApp = await prisma.application.create({
+      data: {
+        userId: DEMO_USER_ID,
+        company: formData.company,
+        position: formData.position,
+        location: formData.location,
+        jobUrl: formData.jobUrl,
+        salary: formData.salary,
+        status: formData.status || ApplicationStatus.WISHLIST,
+        notes: formData.notes,
+      },
+    });
+
+    revalidatePath("/kanban");
+    revalidatePath("/applications");
+    revalidatePath("/");
+    return { success: true, data: newApp };
+  } catch (error) {
+    console.error("Failed to create application:", error);
+    return { success: false, error: "Bewerbung konnte nicht angelegt werden." };
+  }
+}
+
+/**
+ * Bewerbung löschen
+ */
+export async function deleteApplication(id: string) {
+  try {
+    await prisma.application.delete({
+      where: { id },
+    });
+
+    revalidatePath("/kanban");
+    revalidatePath("/applications");
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete application:", error);
+    return { success: false, error: "Löschen fehlgeschlagen." };
+  }
+}
