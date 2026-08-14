@@ -4,11 +4,12 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ApplicationStatus } from "@prisma/client";
 
-// MOCK USER ID - Später durch auth() von Clerk/NextAuth ersetzen
 const DEMO_USER_ID = "user_demo_123";
 
+const toNullIfEmpty = (str?: string) => (str && str.trim() !== "" ? str.trim() : null);
+
 /**
- * Holt alle Bewerbungen des Nutzers inkl. Relations
+ * Alle Bewerbungen abrufen
  */
 export async function getApplications() {
   try {
@@ -28,7 +29,7 @@ export async function getApplications() {
 }
 
 /**
- * Status-Update für Drag-and-Drop im Kanban Board
+ * Status via Drag & Drop aktualisieren
  */
 export async function updateApplicationStatus(
   id: string,
@@ -50,7 +51,7 @@ export async function updateApplicationStatus(
 }
 
 /**
- * Neue Bewerbung anlegen
+ * Neue Bewerbung erstellen
  */
 export async function createApplication(formData: {
   company: string;
@@ -62,7 +63,6 @@ export async function createApplication(formData: {
   notes?: string;
 }) {
   try {
-    // Falls User noch nicht existiert (Demo-Setup Fallback)
     await prisma.user.upsert({
       where: { id: DEMO_USER_ID },
       update: {},
@@ -76,18 +76,17 @@ export async function createApplication(formData: {
     const newApp = await prisma.application.create({
       data: {
         userId: DEMO_USER_ID,
-        company: formData.company,
-        position: formData.position,
-        location: formData.location,
-        jobUrl: formData.jobUrl,
-        salary: formData.salary,
+        company: formData.company.trim(),
+        position: formData.position.trim(),
+        location: toNullIfEmpty(formData.location),
+        jobUrl: toNullIfEmpty(formData.jobUrl),
+        salary: toNullIfEmpty(formData.salary),
         status: formData.status || ApplicationStatus.WISHLIST,
-        notes: formData.notes,
+        notes: toNullIfEmpty(formData.notes),
       },
     });
 
     revalidatePath("/kanban");
-    revalidatePath("/applications");
     revalidatePath("/");
     return { success: true, data: newApp };
   } catch (error) {
@@ -106,7 +105,6 @@ export async function deleteApplication(id: string) {
     });
 
     revalidatePath("/kanban");
-    revalidatePath("/applications");
     revalidatePath("/");
     return { success: true };
   } catch (error) {
