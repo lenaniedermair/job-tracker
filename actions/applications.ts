@@ -112,3 +112,41 @@ export async function deleteApplication(id: string) {
     return { success: false, error: "Löschen fehlgeschlagen." };
   }
 }
+
+/**
+ * Details einer Bewerbung aktualisieren
+ */
+export async function updateApplication(
+  id: string,
+  formData: {
+    company: string;
+    position: string;
+    location?: string;
+    jobUrl?: string;
+    salary?: string;
+    status: ApplicationStatus;
+    notes?: string;
+  }
+) {
+  try {
+    const updated = await prisma.application.update({
+      where: { id },
+      data: {
+        company: formData.company.trim(),
+        position: formData.position.trim(),
+        location: toNullIfEmpty(formData.location),
+        jobUrl: toNullIfEmpty(formData.jobUrl),
+        salary: toNullIfEmpty(formData.salary),
+        status: formData.status,
+        notes: toNullIfEmpty(formData.notes),
+      },
+    });
+
+    revalidatePath("/kanban");
+    revalidatePath("/");
+    return { success: true, data: updated };
+  } catch (error) {
+    console.error("Failed to update application:", error);
+    return { success: false, error: "Aktualisierung fehlgeschlagen." };
+  }
+}

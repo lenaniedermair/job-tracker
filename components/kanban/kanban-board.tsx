@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState } from "react";
+import { useEffect, useOptimistic, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -14,6 +14,7 @@ import { ApplicationStatus, ApplicationWithDetails, KanbanColumn as IKanbanColum
 import { KanbanColumn } from "./kanban-column";
 import { KanbanCard } from "./kanban-card";
 import { updateApplicationStatus } from "@/actions/applications";
+import { ApplicationDetailDrawer } from "./application-detail-drawer";
 
 const COLUMNS: IKanbanColumn[] = [
   { id: ApplicationStatus.WISHLIST, title: "Wunschliste", color: "bg-slate-400" },
@@ -29,6 +30,13 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ initialApplications }: KanbanBoardProps) {
   const [activeApp, setActiveApp] = useState<ApplicationWithDetails | null>(null);
+  const [selectedApp, setSelectedApp] = useState<ApplicationWithDetails | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Verhindert Hydration-Mismatch bei Dnd-Context & Date-Formatting
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Optimistic UI updates
   const [optimisticApps, setOptimisticApps] = useOptimistic(
@@ -39,7 +47,7 @@ export function KanbanBoard({ initialApplications }: KanbanBoardProps) {
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 }, // Verhindert ungewolltes Dragging bei Klicks
+      activationConstraint: { distance: 5 },
     })
   );
 
@@ -57,26 +65,19 @@ export function KanbanBoard({ initialApplications }: KanbanBoardProps) {
     const appId = active.id as string;
     const newStatus = over.id as ApplicationStatus;
 
-    // Nur aktualisieren, wenn sich die Spalte geändert hat
     const currentApp = optimisticApps.find((a) => a.id === appId);
     if (!currentApp || currentApp.status === newStatus) return;
 
-    // 1. UI sofort optimistisch updaten
     setOptimisticApps({ id: appId, newStatus });
-
-    // 2. Im Hintergrund DB anpassen
     await updateApplicationStatus(appId, newStatus);
   };
 
-  return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
+  // Render-Fallback während der SSR-Hydrierung
+  if (!isMounted) {
+    return (
       <div className="flex h-[calc(100vh-10rem)] w-full gap-6 overflow-x-auto pb-4 pt-2">
         {COLUMNS.map((col) => {
-          const colApps = optimisticApps.filter((app) => app.status === col.id);
+          const colApps = initialApplications.filter((app) => app.status === col.id);
           return (
             <KanbanColumn
               key={col.id}
@@ -86,11 +87,42 @@ export function KanbanBoard({ initialApplications }: KanbanBoardProps) {
           );
         })}
       </div>
+    );
+  }
 
-      {/* Drag Overlay für sanftes Ziehen */}
-      <DragOverlay>
-        {activeApp ? <KanbanCard application={activeApp} /> : null}
-      </DragOverlay>
-    </DndContext>
+  return (
+    <>
+      <DndContext
+        id="kanban-board-dnd"
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex h-[calc(100vh-10rem)] w-full gap-6 overflow-x-auto pb-4 pt-2">
+          {COLUMNS.map((col) => {
+            const colApps = optimisticApps.filter((app) => app.status === col.id);
+            return (
+              <KanbanColumn
+                key={col.id}
+                column={col}
+                applications={colApps}
+                onCardClick={(app) => setSelectedApp(app)}
+              />
+            );
+          })}
+        </div>
+
+        <DragOverlay>
+          {activeApp ? <KanbanCard application={activeApp} /> : null}
+        </DragOverlay>
+      </DndContext>
+
+      {/* Slide-Over Detail Panel */}
+      <ApplicationDetailDrawer
+        application={selectedApp}
+        isOpen={!!selectedApp}
+        onClose={() => setSelectedApp(null)}
+      />
+    </>
   );
 }
