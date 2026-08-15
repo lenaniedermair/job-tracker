@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ApplicationStatus } from "@/types";
 import { createApplication } from "@/actions/applications";
 import { Plus, X, Building2, Briefcase, MapPin, Euro, Link, FileText, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface AddApplicationModalProps {
   isOpen: boolean;
@@ -52,7 +53,7 @@ export function AddApplicationModal({ isOpen, onClose }: AddApplicationModalProp
       });
       onClose();
     } else {
-      alert(res.error);
+      toast.error(res.error || "Fehler beim Anlegen der Bewerbung. Bitte versuche es erneut.");
     }
   };
 

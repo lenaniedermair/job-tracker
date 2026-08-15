@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface ApplicationDetailDrawerProps {
   application: ApplicationWithDetails | null;
@@ -78,7 +79,7 @@ export function ApplicationDetailDrawer({
     if (res.success) {
       onClose();
     } else {
-      alert(res.error);
+      toast.error(res.error || "Fehler beim Aktualisieren der Bewerbung. Bitte versuche es erneut.");
     }
   };
 
@@ -92,7 +93,7 @@ export function ApplicationDetailDrawer({
     if (res.success) {
       onClose();
     } else {
-      alert(res.error);
+      toast.error(res.error || "Fehler beim Löschen der Bewerbung. Bitte versuche es erneut.");
     }
   };
 
