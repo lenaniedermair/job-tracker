@@ -3,13 +3,21 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ApplicationWithDetails } from "@/types";
-import { Building2, MapPin, Calendar, ExternalLink, DollarSign } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { de } from "date-fns/locale";
+import { CompanyBadge } from "./company-badge";
 
 interface KanbanCardProps {
   application: ApplicationWithDetails;
   onClick?: () => void;
+}
+
+// Hilfsfunktion: Hängt € an, falls noch keine Währung angegeben ist
+function formatSalary(salary?: string | null) {
+  if (!salary) return null;
+  const trimmed = salary.trim();
+  if (trimmed.includes("€") || trimmed.includes("$") || trimmed.includes("£")) {
+    return trimmed;
+  }
+  return `${trimmed} €`;
 }
 
 export function KanbanCard({ application, onClick }: KanbanCardProps) {
@@ -25,13 +33,14 @@ export function KanbanCard({ application, onClick }: KanbanCardProps) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.4 : 1,
   };
 
-  const daysAgo = formatDistanceToNow(new Date(application.appliedDate), {
-    addSuffix: true,
-    locale: de,
+  const formattedDate = new Date(application.updatedAt).toLocaleDateString("de-DE", {
+    month: "short",
+    day: "numeric",
   });
+
+  const displaySalary = formatSalary(application.salary);
 
   return (
     <div
@@ -40,53 +49,48 @@ export function KanbanCard({ application, onClick }: KanbanCardProps) {
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className="group relative cursor-grab active:cursor-grabbing rounded-xl border border-slate-800 bg-slate-900/90 p-4 shadow-lg backdrop-blur-sm transition-all hover:border-slate-700 hover:shadow-indigo-500/10 hover:shadow-2xl"
+      className={`group relative mb-2.5 cursor-grab rounded-[18px] border border-white/[0.04] bg-[#1d1c1d] p-3.5 select-none transition-colors hover:bg-[#262525] active:cursor-grabbing ${
+        isDragging ? "z-50 opacity-40 scale-105 shadow-2xl" : ""
+      }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <h4 className="font-semibold text-slate-100 group-hover:text-indigo-400 transition-colors">
+      {/* Header Row: Position */}
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <p className="font-sans text-[13.5px] font-semibold leading-tight text-[#fbfdf6] truncate">
           {application.position}
-        </h4>
-        {application.jobUrl && (
-          <a
-            href={application.jobUrl}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-slate-500 hover:text-slate-300 transition-colors"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        )}
+        </p>
       </div>
 
-      <div className="mt-2 flex items-center gap-2 text-sm text-slate-400">
-        <Building2 className="h-3.5 w-3.5 text-indigo-400" />
-        <span className="font-medium text-slate-300">{application.company}</span>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+      {/* Company + Location */}
+      <div className="mb-2.5 flex items-center gap-1.5">
+        <CompanyBadge company={application.company} />
+        <span className="text-[11px] font-medium text-[#7f807f] truncate">
+          {application.company}
+        </span>
         {application.location && (
-          <div className="flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
-            <span>{application.location}</span>
-          </div>
-        )}
-        {application.salary && (
-          <div className="flex items-center gap-1 text-emerald-400 font-mono">
-            <DollarSign className="h-3 w-3" />
-            <span>{application.salary}</span>
-          </div>
+          <>
+            <span className="text-[#3a3a3a]">·</span>
+            <span className="text-[11px] text-[#5a5a5a] truncate">
+              {application.location}
+            </span>
+          </>
         )}
       </div>
 
-      <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
-        <div className="flex items-center gap-1">
-          <Calendar className="h-3 w-3" />
-          <span>{daysAgo}</span>
+      {/* Notes / Tag Badge */}
+      {application.notes && (
+        <div className="mb-2.5 flex flex-wrap gap-1">
+          <span className="rounded-md bg-[#6642c7]/20 px-1.5 py-0.5 text-[10px] font-medium text-[#a78bfa] truncate max-w-[180px]">
+            {application.notes}
+          </span>
         </div>
-        {application.documents && application.documents.length > 0 && (
-          <span className="rounded-full bg-indigo-950/80 px-2 py-0.5 text-indigo-300 border border-indigo-800/50">
-            {application.documents.length} Dok.
+      )}
+
+      {/* Footer: Date & Formatted Salary */}
+      <div className="flex items-center justify-between pt-1">
+        <span className="text-[10px] text-[#5a5a5a]">{formattedDate}</span>
+        {displaySalary && (
+          <span className="text-[10px] font-medium text-[#6642c7]">
+            {displaySalary}
           </span>
         )}
       </div>
