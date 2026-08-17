@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useOptimistic, useState, startTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragEndEvent,
@@ -15,6 +16,7 @@ import { KanbanColumn } from "./kanban-column";
 import { KanbanCard } from "./kanban-card";
 import { updateApplicationStatus, deleteApplication } from "@/actions/applications";
 import { ApplicationDetailDrawer } from "./application-detail-drawer";
+import { AddApplicationModal } from "./add-application-modal";
 import { TrashDropZone } from "./trash-drop-zone";
 import { toast } from "sonner";
 import { Search, Plus, SlidersHorizontal, X, RotateCcw, Check } from "lucide-react";
@@ -46,8 +48,10 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ initialApplications }: KanbanBoardProps) {
+  const router = useRouter();
   const [activeApp, setActiveApp] = useState<ApplicationWithDetails | null>(null);
   const [selectedApp, setSelectedApp] = useState<ApplicationWithDetails | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isMounted, setIsMounted] = useState(false);
 
@@ -72,6 +76,16 @@ export function KanbanBoard({ initialApplications }: KanbanBoardProps) {
       );
     }
   );
+
+  const handleCloseAddModal = () => {
+    setIsAddModalOpen(false);
+    router.refresh();
+  };
+
+  const handleCloseDrawer = () => {
+    setSelectedApp(null);
+    router.refresh();
+  };
 
   // Status Filter-Pill Umschalter
   const toggleStatusFilter = (status: ApplicationStatus) => {
@@ -195,7 +209,10 @@ export function KanbanBoard({ initialApplications }: KanbanBoardProps) {
               </p>
             </div>
 
-            <button className="flex items-center justify-center gap-2 rounded-xl bg-[#6642c7] px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-[#7752db] active:scale-95 shadow-md shadow-[#6642c7]/20">
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center justify-center gap-2 rounded-xl bg-[#6642c7] px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-[#7752db] active:scale-95 shadow-md shadow-[#6642c7]/20"
+            >
               <Plus className="h-4 w-4 stroke-[2.5]" />
               Bewerbung hinzufügen
             </button>
@@ -362,6 +379,7 @@ export function KanbanBoard({ initialApplications }: KanbanBoardProps) {
                     column={col}
                     applications={colApps}
                     onCardClick={(app) => setSelectedApp(app)}
+                    onAddClick={() => setIsAddModalOpen(true)}
                   />
                 );
               })}
@@ -376,10 +394,15 @@ export function KanbanBoard({ initialApplications }: KanbanBoardProps) {
         </main>
       </div>
 
+      <AddApplicationModal
+        isOpen={isAddModalOpen}
+        onClose={handleCloseAddModal}
+      />
+
       <ApplicationDetailDrawer
         application={selectedApp}
         isOpen={!!selectedApp}
-        onClose={() => setSelectedApp(null)}
+        onClose={handleCloseDrawer}
       />
     </div>
   );

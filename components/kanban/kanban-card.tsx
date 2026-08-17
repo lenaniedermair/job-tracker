@@ -10,7 +10,6 @@ interface KanbanCardProps {
   onClick?: () => void;
 }
 
-// Hilfsfunktion: Hängt € an, falls noch keine Währung angegeben ist
 function formatSalary(salary?: string | null) {
   if (!salary) return null;
   const trimmed = salary.trim();
@@ -49,47 +48,47 @@ export function KanbanCard({ application, onClick }: KanbanCardProps) {
       {...attributes}
       {...listeners}
       onClick={onClick}
-      className={`group relative mb-2.5 cursor-grab rounded-[18px] border border-white/[0.04] bg-[#1d1c1d] p-3.5 select-none transition-colors hover:bg-[#262525] active:cursor-grabbing ${
-        isDragging ? "z-50 opacity-40 scale-105 shadow-2xl" : ""
+      className={`group kanban-card-base ${
+        isDragging ? "z-50 opacity-40 scale-105 shadow-2xl border-kanban-accent" : ""
       }`}
     >
-      {/* Header Row: Position */}
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <p className="font-sans text-[13.5px] font-semibold leading-tight text-[#fbfdf6] truncate">
+      {/* Position / Jobtitel */}
+      <div className="mb-2.5 flex items-start justify-between gap-2">
+        <h3 className="font-sans text-base font-semibold leading-snug text-kanban-text group-hover:text-white truncate">
           {application.position}
-        </p>
+        </h3>
       </div>
 
-      {/* Company + Location */}
-      <div className="mb-2.5 flex items-center gap-1.5">
+      {/* Firma & Ort */}
+      <div className="mb-3 flex items-center gap-2 text-xs text-kanban-text-muted">
         <CompanyBadge company={application.company} />
-        <span className="text-[11px] font-medium text-[#7f807f] truncate">
+        <span className="font-medium text-kanban-text truncate">
           {application.company}
         </span>
         {application.location && (
           <>
-            <span className="text-[#3a3a3a]">·</span>
-            <span className="text-[11px] text-[#5a5a5a] truncate">
+            <span className="text-kanban-text-dim">•</span>
+            <span className="truncate text-kanban-text-muted">
               {application.location}
             </span>
           </>
         )}
       </div>
 
-      {/* Notes / Tag Badge */}
+      {/* Notiz / Tag Badge */}
       {application.notes && (
-        <div className="mb-2.5 flex flex-wrap gap-1">
-          <span className="rounded-md bg-[#6642c7]/20 px-1.5 py-0.5 text-[10px] font-medium text-[#a78bfa] truncate max-w-[180px]">
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          <span className="rounded-lg bg-kanban-accent/20 border border-kanban-accent/30 px-2 py-1 text-xs font-medium text-kanban-accent-light truncate max-w-[220px]">
             {application.notes}
           </span>
         </div>
       )}
 
-      {/* Footer: Date & Formatted Salary */}
-      <div className="flex items-center justify-between pt-1">
-        <span className="text-[10px] text-[#5a5a5a]">{formattedDate}</span>
+      {/* Footer: Datum & Gehalt */}
+      <div className="flex items-center justify-between border-t border-white/[0.04] pt-2.5 mt-1">
+        <span className="text-xs font-medium text-kanban-text-dim">{formattedDate}</span>
         {displaySalary && (
-          <span className="text-[10px] font-medium text-[#6642c7]">
+          <span className="text-xs font-semibold text-kanban-accent-light">
             {displaySalary}
           </span>
         )}
